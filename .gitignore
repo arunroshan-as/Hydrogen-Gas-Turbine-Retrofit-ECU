@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+# Logs / scratch
+nohup.out
+*.log
+# Secrets / confidential material - never commit
+.env
+*.pem
+confidential/
+*_NDA*

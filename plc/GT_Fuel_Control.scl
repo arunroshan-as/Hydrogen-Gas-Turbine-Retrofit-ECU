@@ -1,0 +1,178 @@
+(*==============================================================================
+  GT_Fuel_Control.scl  -  ILLUSTRATIVE reference logic for a Siemens SIMATIC S7-400 class
+  controller (e.g. CPU 410-5H) in SCL. Mirrors src/gtretro/control.py.
+
+  STATUS: PRELIMINARY. Written from the Python reference model; NOT compiled, NOT tested on
+  hardware, NOT a certified safety function. Names, data types and block numbers must be adapted
+  and checked in STEP 7 / TIA Portal. The hard-wired ESD chain and the safety PLC (F-CPU) are
+  independent of this file (see docs/safety_architecture.md).
+
+  Call FB_GT_FuelDemand from a cyclic-interrupt OB (e.g. OB35, 20..100 ms).
+  Units: speed in per-unit, fuel energy flow in per-unit of rated heat input, temperature in K.
+==============================================================================*)
+
+FUNCTION_BLOCK "FB_GT_FuelDemand"
+VAR_INPUT
+    N_meas      : REAL;     // controlled shaft speed [pu]  (generator shaft or power turbine)
+    N_ref       : REAL;     // speed reference [pu]
+    Tx_meas     : REAL;     // exhaust temperature, voted/mid-value-selected [K]
+    Tx_lim      : REAL;     // exhaust-temperature limit [K]
+    Ng_meas     : REAL;     // gas-generator speed [pu] (two/three-shaft machines)
+    Ng_lim      : REAL;     // gas-generator speed limit [pu]
+    UseGG_Limit : BOOL;     // TRUE for two/three-shaft machines
+    Kp          : REAL;     // governor gain  [pu fuel / pu speed]
+    Ti          : REAL;     // governor integral time [s]
+    Kt          : REAL;     // temperature-limiter gain [pu fuel / K]
+    Tit         : REAL;     // temperature-limiter integral time [s]
+    RateUp      : REAL;     // max fuel increase rate [pu/s]
+    RateDn      : REAL;     // max fuel decrease rate [pu/s]
+    W_min       : REAL;     // flame-retention floor [pu]
+    W_max       : REAL;     // maximum fuel demand [pu]
+    dt          : REAL;     // cycle time of the calling OB [s]
+    Trip        : BOOL;     // TRUE = trip latched elsewhere -> demand forced to zero
+END_VAR
+VAR_OUTPUT
+    W_dem       : REAL;     // total fuel energy-flow demand [pu]
+    Sel         : INT;      // 1 = governor, 2 = temperature limiter, 3 = GG limiter, 4 = rate/limit
+END_VAR
+VAR
+    I_gov       : REAL := 0.23;
+    I_tl        : REAL := 0.23;
+    I_gg        : REAL := 1.0;
+    W_prev      : REAL := 0.0;
+    Init        : BOOL := TRUE;
+END_VAR
+VAR_TEMP
+    e_s : REAL; e_t : REAL; e_g : REAL;
+    w_gov : REAL; w_tl : REAL; w_gg : REAL; w_sel : REAL; w_rate : REAL;
+    H : REAL;
+    saturated : BOOL;
+END_VAR
+
+BEGIN
+    H := 0.12;                                   // anti-windup head-room of losing paths [pu]
+    IF Trip THEN
+        W_dem := 0.0; W_prev := 0.0; Sel := 0;
+        RETURN;
+    END_IF;
+    IF Init THEN
+        W_prev := MAX(W_min, 0.0);               // bumpless start: caller should pre-set via I_* if needed
+        Init := FALSE;
+    END_IF;
+
+    e_s := N_ref - N_meas;
+    e_t := Tx_lim - Tx_meas;
+    e_g := Ng_lim - Ng_meas;
+
+    w_gov := Kp * e_s + I_gov;
+    w_tl  := Kt * e_t + I_tl;
+    w_gg  := 1.0E9;                              // inactive unless two/three-shaft
+    IF UseGG_Limit THEN
+        w_gg := 4.0 * e_g + I_gg;
+    END_IF;
+
+    // ---- minimum select ----
+    w_sel := w_gov; Sel := 1;
+    IF w_tl < w_sel THEN w_sel := w_tl; Sel := 2; END_IF;
+    IF w_gg < w_sel THEN w_sel := w_gg; Sel := 3; END_IF;
+
+    // ---- rate limit and range limit ----
+    w_rate := w_sel;
+    IF w_rate > W_prev + RateUp * dt THEN w_rate := W_prev + RateUp * dt; END_IF;
+    IF w_rate < W_prev - RateDn * dt THEN w_rate := W_prev - RateDn * dt; END_IF;
+    IF w_rate < W_min THEN w_rate := W_min; END_IF;
+    IF w_rate > W_max THEN w_rate := W_max; END_IF;
+    saturated := ABS(w_rate - w_sel) > 1.0E-6;
+    IF saturated THEN Sel := 4; END_IF;
+
+    // ---- integrators: clamp losing paths, hold winner while saturated, else integrate ----
+    IF w_gov > w_rate + H THEN
+        I_gov := (w_rate + H) - Kp * e_s;
+    ELSIF NOT (saturated AND w_gov <= w_sel + 1.0E-6) THEN
+        I_gov := I_gov + Kp / Ti * e_s * dt;
+    END_IF;
+
+    IF w_tl > w_rate + H THEN
+        I_tl := (w_rate + H) - Kt * e_t;
+    ELSIF NOT (saturated AND w_tl <= w_sel + 1.0E-6) THEN
+        I_tl := I_tl + Kt / Tit * e_t * dt;
+    END_IF;
+
+    IF UseGG_Limit THEN
+        IF w_gg > w_rate + H THEN
+            I_gg := (w_rate + H) - 4.0 * e_g;
+        ELSIF NOT (saturated AND w_gg <= w_sel + 1.0E-6) THEN
+            I_gg := I_gg + 4.0 / 6.0 * e_g * dt;
+        END_IF;
+    END_IF;
+
+    W_prev := w_rate;
+    W_dem  := w_rate;
+END_FUNCTION_BLOCK
+
+
+(*------------------------------------------------------------------------------
+  FC_FuelToValve : energy-flow demand -> metering-valve position (Wobbe / composition compensated)
+  Inputs come from the composition estimate (blend-ratio flow meters preferred, analyzer as cross-check).
+  The inverse orifice relation is evaluated on-line with the measured upstream/downstream pressures.
+------------------------------------------------------------------------------*)
+FUNCTION "FC_FuelToValve" : REAL
+VAR_INPUT
+    W_main_pu : REAL;        // main-stage energy demand [pu]
+    Q_rated   : REAL;        // rated heat input [W]
+    LHV_mass  : REAL;        // lower heating value of current fuel [J/kg]  (from composition estimate)
+    R_gas     : REAL;        // specific gas constant [J/kg/K]               (from composition estimate)
+    Gamma     : REAL;        // cp/cv                                         (from composition estimate)
+    T_fuel    : REAL;        // fuel gas temperature [K]
+    P_up      : REAL;        // measured valve inlet pressure [Pa abs]
+    P_dn      : REAL;        // measured manifold pressure [Pa abs]
+    Cd        : REAL;
+    A_max     : REAL;        // valve effective area at 100 % stroke [m2]
+    Range     : REAL;        // equal-percentage rangeability (e.g. 50)
+END_VAR
+VAR_TEMP
+    m_dem : REAL; r : REAL; rc : REAL; psi : REAL; A : REAL; f : REAL; x : REAL;
+END_VAR
+BEGIN
+    "FC_FuelToValve" := 0.0;
+    IF W_main_pu <= 0.0 OR P_up <= P_dn THEN RETURN; END_IF;
+    m_dem := W_main_pu * Q_rated / LHV_mass;
+    r  := P_dn / P_up;
+    rc := EXPT(2.0 / (Gamma + 1.0), Gamma / (Gamma - 1.0));          // critical pressure ratio
+    IF r <= rc THEN
+        psi := SQRT(Gamma) * EXPT(2.0 / (Gamma + 1.0), (Gamma + 1.0) / (2.0 * (Gamma - 1.0)));
+    ELSE
+        psi := SQRT(2.0 * Gamma / (Gamma - 1.0) * (EXPT(r, 2.0 / Gamma) - EXPT(r, (Gamma + 1.0) / Gamma)));
+    END_IF;
+    A := m_dem * SQRT(R_gas * T_fuel) / (P_up * psi) / Cd;           // required effective area
+    f := A / A_max;
+    IF f < 0.0 THEN f := 0.0; END_IF;
+    IF f > 1.0 THEN f := 1.0; END_IF;
+    x := 1.0 + LN(f * (1.0 - 1.0 / Range) + 1.0 / Range) / LN(Range);   // inverse equal-percentage curve
+    IF x < 0.0 THEN x := 0.0; END_IF;
+    IF x > 1.0 THEN x := 1.0; END_IF;
+    "FC_FuelToValve" := x;
+END_FUNCTION
+
+
+(*------------------------------------------------------------------------------
+  FC_TripLogic : software trip request. The independent hard-wired ESD / F-CPU chain remains the
+  safety layer; this FC only requests a controlled shutdown and annunciates the first-out cause.
+------------------------------------------------------------------------------*)
+FUNCTION "FC_TripLogic" : INT
+VAR_INPUT
+    N_meas : REAL; N_trip : REAL;            // e.g. 1.10 pu
+    Tx_meas : REAL; Tx_trip : REAL;          // e.g. 840 K
+    FlameOK : BOOL;                          // 2oo3 voted flame detectors
+    H2_Leak : BOOL;                          // voted hydrogen detection in enclosure / skid
+    FuelPressOK : BOOL;                      // supply-pressure window
+END_VAR
+BEGIN
+    "FC_TripLogic" := 0;                     // 0 = no trip
+    IF N_meas > N_trip THEN "FC_TripLogic" := 1;           // overspeed
+    ELSIF Tx_meas > Tx_trip THEN "FC_TripLogic" := 2;      // exhaust temperature
+    ELSIF NOT FlameOK THEN "FC_TripLogic" := 3;            // flame loss
+    ELSIF H2_Leak THEN "FC_TripLogic" := 4;                // hydrogen leak
+    ELSIF NOT FuelPressOK THEN "FC_TripLogic" := 5;        // fuel-pressure out of window
+    END_IF;
+END_FUNCTION

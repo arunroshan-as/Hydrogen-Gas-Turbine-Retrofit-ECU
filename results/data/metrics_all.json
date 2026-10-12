@@ -1,0 +1,247 @@
+{
+ "fuel_switch": {
+  "ramp_nocomp": {
+   "N_dev_max_pct": 0.12293371077392035,
+   "Tx_max_K": 699.9315384615369,
+   "phi_act_max": 0.40289956676720595,
+   "phi_act_min": 0.3308753037342059,
+   "t_phi_above_0p55_s": 0.0,
+   "valve_x_max": 0.9172306601815836,
+   "final_demand_over_delivered": 1.1361840276291773
+  },
+  "ramp_analyzer": {
+   "N_dev_max_pct": 0.07421815018187061,
+   "Tx_max_K": 699.9315384615369,
+   "phi_act_max": 0.5305053485177312,
+   "phi_act_min": 0.38454476576939944,
+   "t_phi_above_0p55_s": 0.0,
+   "valve_x_max": 0.9136481671109912,
+   "final_demand_over_delivered": 0.9999999408630476
+  },
+  "ramp_ratio": {
+   "N_dev_max_pct": 0.030583660592364836,
+   "Tx_max_K": 701.0643966087505,
+   "phi_act_max": 0.5450741358078187,
+   "phi_act_min": 0.39546119297276244,
+   "t_phi_above_0p55_s": 0.0,
+   "valve_x_max": 0.9134663463419497,
+   "final_demand_over_delivered": 0.9999999994516429
+  },
+  "step_nocomp": {
+   "N_dev_max_pct": 0.481472476294742,
+   "Tx_max_K": 701.3895875651535,
+   "phi_act_max": 0.40289956676720595,
+   "phi_act_min": 0.29189397304135195,
+   "t_phi_above_0p55_s": 0.0,
+   "valve_x_max": 0.9034586720669963,
+   "final_demand_over_delivered": 1.1361840285273936
+  },
+  "step_analyzer": {
+   "N_dev_max_pct": 0.481472476294742,
+   "Tx_max_K": 703.7193865599899,
+   "phi_act_max": 0.4571959267458344,
+   "phi_act_min": 0.29189397304135195,
+   "t_phi_above_0p55_s": 0.0,
+   "valve_x_max": 0.9065934516196489,
+   "final_demand_over_delivered": 0.9999999932999907
+  },
+  "step_ratio": {
+   "N_dev_max_pct": 0.2964064417194656,
+   "Tx_max_K": 724.4953351677499,
+   "phi_act_max": 0.4568128707355994,
+   "phi_act_min": 0.29189397304135195,
+   "t_phi_above_0p55_s": 0.0,
+   "valve_x_max": 0.9266961027265741,
+   "final_demand_over_delivered": 1.0000000000371294
+  }
+ },
+ "load_step": {
+  "N_min_pct": 96.22731265248244,
+  "N_end_pct": 99.99840869686182,
+  "Tx_max_K": 759.9472362817102,
+  "t_recover_1pct_s": 3.055333763768431e-13,
+  "phi_min": 0.39603260984609356,
+  "phi_max": 0.5497785482716097
+ },
+ "load_rejection": {
+  "h2_0": {
+   "N_peak_pct": 104.29097799114216,
+   "t_peak_s": 0.720000000000276,
+   "tripped": false
+  },
+  "h2_100": {
+   "N_peak_pct": 104.33490286541192,
+   "t_peak_s": 0.7000000000002728,
+   "tripped": false
+  }
+ },
+ "spool_architectures": {
+  "single": {
+   "N_min_pct": 96.22731265248244
+  },
+  "two": {
+   "overshoot_pct_of_step": 0.0,
+   "t90_s": 13.159999999998512,
+   "Ng_max_pct": 97.19143091081855,
+   "Tx_max_K": 743.2271971996822
+  },
+  "three": {
+   "overshoot_pct_of_step": 0.0,
+   "t90_s": 10.039999999998308,
+   "Ng_max_pct": 97.19231493686803,
+   "Tx_max_K": 744.3450539309532
+  }
+ },
+ "scan_time": [
+  {
+   "Ts_ms": 10.0,
+   "N_min_pct": 96.2856,
+   "N_max_pct": 100.0,
+   "IAE": 0.2929,
+   "ripple_pct": 0.116
+  },
+  {
+   "Ts_ms": 20.0,
+   "N_min_pct": 96.2273,
+   "N_max_pct": 100.0,
+   "IAE": 0.2994,
+   "ripple_pct": 0.1193
+  },
+  {
+   "Ts_ms": 50.0,
+   "N_min_pct": 96.0494,
+   "N_max_pct": 100.0,
+   "IAE": 0.3194,
+   "ripple_pct": 0.1292
+  },
+  {
+   "Ts_ms": 100.0,
+   "N_min_pct": 95.0081,
+   "N_max_pct": 100.0,
+   "IAE": 0.4508,
+   "ripple_pct": 0.2115
+  },
+  {
+   "Ts_ms": 250.0,
+   "N_min_pct": 94.7137,
+   "N_max_pct": 100.0,
+   "IAE": 0.4942,
+   "ripple_pct": 0.2417
+  },
+  {
+   "Ts_ms": 500.0,
+   "N_min_pct": 92.6462,
+   "N_max_pct": 100.0,
+   "IAE": 0.8364,
+   "ripple_pct": 0.5828
+  },
+  {
+   "Ts_ms": 1000.0,
+   "N_min_pct": 36.6265,
+   "N_max_pct": 100.0,
+   "IAE": 16.4766,
+   "ripple_pct": 17.2767
+  }
+ ],
+ "startup": {
+  "state_times_s": {
+   "ACCEL": [
+    76.5499999999978,
+    118.94999999999538
+   ],
+   "CRANK": [
+    8.04999999999998,
+    42.8999999999997
+   ],
+   "IDLE (FSNL)": [
+    118.99999999999538,
+    126.99999999999493
+   ],
+   "IGNITION": [
+    65.44999999999843,
+    70.44999999999814
+   ],
+   "PURGE": [
+    42.9499999999997,
+    65.39999999999843
+   ],
+   "READY": [
+    0.05,
+    7.99999999999998
+   ],
+   "SYNC / LOAD": [
+    127.04999999999492,
+    240.00000000002032
+   ],
+   "WARM-UP": [
+    70.49999999999814,
+    76.4999999999978
+   ]
+  },
+  "purge_time_s": 22.44999999999873,
+  "time_to_idle_s": 118.99999999999538,
+  "time_to_0p7_load_s": 162.0000000000026
+ },
+ "flameout": [
+  {
+   "h2_vol": 0.0,
+   "tau_valve_s": 0.1,
+   "peak_exhaust_fuel_pct": 2.0805,
+   "LFL_pct": 5.0,
+   "time_above_LFL_s": 0.0,
+   "unburnt_fuel_kg": 0.2304,
+   "t_trip_s": 0.02,
+   "trip_reason": "FLAME_LOSS"
+  },
+  {
+   "h2_vol": 0.0,
+   "tau_valve_s": 0.5,
+   "peak_exhaust_fuel_pct": 2.0805,
+   "LFL_pct": 5.0,
+   "time_above_LFL_s": 0.0,
+   "unburnt_fuel_kg": 0.2534,
+   "t_trip_s": 0.02,
+   "trip_reason": "FLAME_LOSS"
+  },
+  {
+   "h2_vol": 0.0,
+   "tau_valve_s": 1.5,
+   "peak_exhaust_fuel_pct": 2.0805,
+   "LFL_pct": 5.0,
+   "time_above_LFL_s": 0.0,
+   "unburnt_fuel_kg": 0.3098,
+   "t_trip_s": 0.02,
+   "trip_reason": "FLAME_LOSS"
+  },
+  {
+   "h2_vol": 1.0,
+   "tau_valve_s": 0.1,
+   "peak_exhaust_fuel_pct": 6.4711,
+   "LFL_pct": 4.0,
+   "time_above_LFL_s": 0.04,
+   "unburnt_fuel_kg": 0.0794,
+   "t_trip_s": 0.02,
+   "trip_reason": "FLAME_LOSS"
+  },
+  {
+   "h2_vol": 1.0,
+   "tau_valve_s": 0.5,
+   "peak_exhaust_fuel_pct": 6.4711,
+   "LFL_pct": 4.0,
+   "time_above_LFL_s": 0.1,
+   "unburnt_fuel_kg": 0.0912,
+   "t_trip_s": 0.02,
+   "trip_reason": "FLAME_LOSS"
+  },
+  {
+   "h2_vol": 1.0,
+   "tau_valve_s": 1.5,
+   "peak_exhaust_fuel_pct": 6.4711,
+   "LFL_pct": 4.0,
+   "time_above_LFL_s": 0.24,
+   "unburnt_fuel_kg": 0.1189,
+   "t_trip_s": 0.02,
+   "trip_reason": "FLAME_LOSS"
+  }
+ ]
+}
